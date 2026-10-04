@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#072f37" />
+  <meta name="description" content="AquaLens: a guided, evidence-first stream assessment prototype for citizen scientists." />
+  <title>AquaLens · Stream check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    /* ---------- Base ---------- */
+    :root {
+      --ink: #12363a;
+      --ink-soft: #5d7777;
+      --teal: #0b7769;
+      --teal-dark: #075e54;
+      --green: #168c77;
+      --mint: #87e6c6;
+      --line: #dceae4;
+      --bg: #f1f6f3;
+      --card: #fff;
+      --sidebar: #07323a;
+      --serif: Fraunces, Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; color: var(--ink); background: var(--bg); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    :focus-visible, label:focus-within { outline: 3px solid #f4a64a; outline-offset: 3px; }
+
+    /* ---------- Layout ---------- */
+    .app-shell { display: grid; grid-template-columns: 254px minmax(0, 1fr); min-height: 100vh; }
+    .main { min-width: 0; }
+    .workspace {
+      display: grid; grid-template-columns: minmax(0, 710px) minmax(250px, 312px);
+      gap: clamp(25px, 3.5vw, 62px); max-width: 1250px; margin: auto;
+      padding: 45px clamp(22px, 4.2vw, 68px) 70px;
+    }
+    .work-column { min-width: 0; }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar { background: var(--sidebar); color: #ebf7f2; padding: 31px 22px; display: flex; flex-direction: column; min-height: 100vh; }
+    .brand { font-size: 1.57rem; font-weight: 700; letter-spacing: -.06em; display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      display: inline-grid; place-items: center; width: 32px; height: 32px;
+      border: 2px solid #8be7cf; border-radius: 50%; color: #94ead3; font-size: 1.2rem; letter-spacing: 0;
+    }
+    .brand-accent, .mobile-brand span:last-child { color: var(--mint); }
+    .side-caption { font-size: .72rem; letter-spacing: .17em; font-weight: 700; color: #84aeb0; margin: 12px 0 49px 42px; }
+    .side-caption span { padding: 0 5px; }
+    .site-card {
+      background: #174650; border: 1px solid #33646a; border-radius: 14px; padding: 19px 17px;
+      display: flex; flex-direction: column; gap: 7px; color: #c2dad9; font-size: .82rem;
+    }
+    .site-card strong { font-size: 1.14rem; color: #fff; }
+    .site-card .eyebrow { color: #80d7be; }
+    .site-status { border-top: 1px solid #3b6970; margin-top: 10px; padding-top: 13px; font-size: .77rem; }
+    .eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .15em; }
+    .status-dot, .top-pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #7de2be; margin-right: 7px; }
+
+    .step-nav { margin-top: 35px; display: flex; flex-direction: column; gap: 7px; }
+    .step-nav button {
+      border: 0; color: #b2cfd0; background: transparent; border-radius: 10px; width: 100%;
+      padding: 13px 12px; display: flex; align-items: center; gap: 13px; text-align: left; font-size: .89rem; font-weight: 600;
+    }
+    .step-nav button:hover, .step-nav button.active { background: #22525a; color: #fff; }
+    .step-nav button.active { box-shadow: inset 3px 0 var(--mint); }
+    .step-number { font-size: .75rem; letter-spacing: .06em; color: #81a9ac; }
+    .active .step-number { color: #8ce9cd; }
+    .side-bottom { margin-top: auto; color: #acc8c8; font-size: .78rem; line-height: 1.6; padding: 26px 8px 2px; }
+    .side-bottom span:last-child { padding-left: 23px; }
+    .tiny-spark { font-size: 1rem; color: #8de2c8; margin-right: 6px; }
+
+    /* ---------- Top bar ---------- */
+    .topbar {
+      height: 70px; border-bottom: 1px solid #dce8e3; background: #f8fbf9;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(22px, 4.2vw, 68px);
+    }
+    .top-context { font-size: .74rem; letter-spacing: .13em; font-weight: 700; color: #668886; }
+    .top-pulse { background: #159d82; }
+    .slash { padding: 0 12px; color: #a7bdb8; }
+    .mobile-brand { display: none; }
+    .text-button { border: 0; background: transparent; color: #236e66; font-size: .83rem; font-weight: 700; padding: 10px; }
+    .text-button:hover { text-decoration: underline; }
+
+    /* ---------- Intro ---------- */
+    .kicker { color: var(--green); letter-spacing: .16em; font-weight: 700; font-size: .73rem; display: flex; align-items: center; gap: 10px; }
+    .kicker-line { width: 26px; height: 2px; background: #21ad8e; }
+    .intro h1 { font-family: var(--serif); font-size: clamp(2.3rem, 4vw, 3.45rem); line-height: 1.08; letter-spacing: -.047em; margin: 14px 0 11px; font-weight: 600; color: #0b373d; }
+    .intro h1 em { color: #168d7b; font-style: normal; }
+    .intro p { color: var(--ink-soft); line-height: 1.55; max-width: 590px; margin: 0; }
+    .intro-meta { display: flex; gap: 25px; color: #6a8a87; font-size: .81rem; font-weight: 600; margin: 20px 0 28px; }
+    .mobile-progress { display: none; }
+
+    /* ---------- Panel ---------- */
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 19px; box-shadow: 0 18px 50px rgba(23, 77, 65, .055); overflow: hidden; }
+    .panel-header { padding: 27px 31px 23px; border-bottom: 1px solid #e6efea; }
+    .panel-header .eyebrow { color: #168f77; }
+    .panel-header h2 { font-family: var(--serif); font-weight: 600; color: #123c42; letter-spacing: -.035em; font-size: 1.72rem; line-height: 1.2; margin: 9px 0 8px; }
+    .panel-header p { color: #68807e; line-height: 1.5; margin: 0; }
+    .panel-body { padding: 27px 31px 29px; }
+    .panel-actions {
+      display: flex; align-items: center; justify-content: space-between; gap: 15px;
+      border-top: 1px solid #e7efeb; padding: 18px 31px; background: #fcfefd;
+    }
+    .question { font-weight: 700; color: #163c41; font-size: 1.03rem; margin: 0 0 15px; }
+    .hint { color: #65807c; font-size: .89rem; line-height: 1.5; margin: 0 0 17px; }
+    .microcopy { font-size: .78rem; color: #8aa09a; }
+
+    /* ---------- Buttons ---------- */
+    .button-primary { background: var(--teal); border: 1px solid var(--teal); color: #fff; border-radius: 9px; padding: 12px 20px; font-weight: 700; font-size: .88rem; min-height: 44px; }
+    .button-primary:hover { background: var(--teal-dark); }
+    .button-primary:disabled { opacity: .42; cursor: not-allowed; }
+    .button-secondary { background: transparent; color: #4e7772; border: 0; font-weight: 700; padding: 10px 1px; font-size: .86rem; }
+    .button-secondary:hover, .inline-learn:hover { text-decoration: underline; }
+    .inline-learn { border: 0; background: none; color: #197f70; font-weight: 700; font-size: .84rem; margin-top: 16px; padding: 5px 0; }
+
+    /* ---------- Step 1: calibration ---------- */
+    .visual-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
+    .visual-card, .choice { transition: .2s; }
+    .visual-card { background: #fbfdfb; border: 1.5px solid #dbe9e4; border-radius: 12px; padding: 0; overflow: hidden; text-align: left; color: #1f4648; }
+    .visual-card:hover, .choice:hover { border-color: #69bda6; background: #f4faf7; }
+    .visual-card.selected, .choice.selected { border-color: #168e77; background: #ecf9f3; box-shadow: 0 0 0 2px rgba(34, 154, 126, .1); }
+    .visual-card svg { display: block; width: 100%; height: auto; background: #e3eeea; }
+    .visual-label { display: block; padding: 12px 11px 14px; line-height: 1.35; font-size: .79rem; font-weight: 700; min-height: 67px; }
+    .visual-label b { color: #178b74; margin-right: 4px; }
+    .feedback { border-radius: 11px; padding: 13px 15px; margin-top: 16px; font-size: .9rem; line-height: 1.5; background: #eaf7f1; color: #205a4e; border: 1px solid #cdebdc; }
+    .feedback.warn { background: #fff6e6; color: #69502a; border-color: #f4deaf; }
+    .learning { background: #f2f8f5; border-left: 3px solid #31a484; padding: 11px 15px; color: #41645f; font-size: .87rem; line-height: 1.55; margin-top: 8px; }
+
+    /* ---------- Step 2: observations ---------- */
+    .obs-group { margin-bottom: 26px; }
+    .obs-group .question { margin-bottom: 11px; }
+    .obs-group small { display: block; color: #748c86; margin: -4px 0 13px; font-size: .82rem; line-height: 1.45; }
+    .choice-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+    .choice { border: 1.5px solid var(--line); background: #fbfdfc; border-radius: 10px; padding: 13px 10px; min-height: 68px; text-align: left; font-size: .84rem; line-height: 1.3; font-weight: 700; color: #315459; }
+    .choice span { display: block; font-size: .75rem; font-weight: 500; color: #718b86; margin-top: 4px; }
+    .observation-note { display: flex; gap: 12px; align-items: flex-start; background: #f1f8f4; border-radius: 10px; padding: 13px 15px; margin-top: 23px; color: #416b63; font-size: .87rem; line-height: 1.45; }
+    .observation-note b { color: #13856d; }
+
+    /* ---------- Step 3: photo ---------- */
+    .photo-zone { border: 1.5px dashed #8eb9ab; background: #f8fcf9; border-radius: 14px; padding: 30px 20px; text-align: center; position: relative; overflow: hidden; }
+    .photo-zone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .photo-icon { display: inline-grid; place-items: center; width: 51px; height: 51px; background: #e2f3ea; border-radius: 12px; font-size: 1.6rem; color: #10816b; margin-bottom: 10px; }
+    .photo-zone strong { display: block; color: #1c4f4d; }
+    .photo-zone p { margin: 6px 0 17px; color: #6a8580; font-size: .84rem; }
+    .photo-label { display: inline-block; background: #0d776a; color: #fff; border-radius: 8px; font-weight: 700; font-size: .84rem; padding: 11px 16px; cursor: pointer; }
+    .photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 11px; display: block; margin: 17px 0; }
+    .photo-guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 20px; }
+    .guide-item { border-radius: 10px; background: #f3f8f5; padding: 14px 10px; color: #476a65; font-size: .78rem; line-height: 1.4; }
+    .guide-item b { display: block; color: #164b49; font-size: .85rem; margin-bottom: 5px; }
+    .evidence-card { border: 1px solid #bfe2d3; background: #f0faf5; border-radius: 12px; margin-top: 20px; padding: 18px; }
+    .evidence-title { display: flex; align-items: center; gap: 9px; color: #176e5b; font-weight: 700; }
+    .evidence-title span { background: #cbeedf; border-radius: 7px; padding: 5px 7px; }
+    .evidence-card p, .evidence-card li { font-size: .85rem; line-height: 1.55; color: #446a61; }
+    .evidence-card ul { padding-left: 20px; margin: 10px 0; }
+    .evidence-card .small { font-size: .75rem; color: #76938a; margin-bottom: 0; }
+
+    /* ---------- Step 4: review ---------- */
+    .review-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
+    .review-cell { border: 1px solid #e0ece6; background: #fbfdfb; border-radius: 10px; padding: 15px; }
+    .review-cell small { display: block; color: #78928a; font-size: .74rem; margin-bottom: 5px; }
+    .review-cell strong { color: #214f4c; font-size: .93rem; }
+    .quality-large { display: flex; align-items: center; gap: 18px; background: #ecf8f1; border-radius: 12px; padding: 17px; margin: 19px 0; }
+    .quality-large strong { font-family: var(--serif); font-size: 2rem; color: #117d65; }
+    .quality-large div { font-size: .84rem; color: #4c7667; line-height: 1.45; }
+    .quality-large b { display: block; color: #205946; }
+    .check-list { list-style: none; margin: 0; padding: 0; }
+    .check-list li { padding: 9px 0; border-bottom: 1px solid #edf2ee; color: #3f6760; font-size: .86rem; }
+    .check-list li:last-child { border-bottom: 0; }
+    .check-list li::before { content: '✓'; color: #128a70; font-weight: 800; margin-right: 11px; }
+    .check-list li.warning { color: #8e6227; }
+    .check-list li.warning::before { content: '!'; color: #bb8330; }
+    .saved-banner { background: #eaf8f0; border: 1px solid #ccebdd; border-radius: 12px; padding: 19px; margin-bottom: 18px; }
+    .saved-banner strong { font-family: var(--serif); font-size: 1.35rem; color: #146c56; }
+    .saved-banner p { margin: 7px 0 0; color: #4c7164; font-size: .86rem; line-height: 1.5; }
+    .timeline { display: flex; align-items: center; gap: 8px; margin: 18px 0 25px; }
+    .timeline-node { flex: 1; border-top: 2px solid #93ccb8; padding-top: 13px; color: #5a7c72; font-size: .77rem; }
+    .timeline-node::before { content: '●'; display: block; color: #1b9b7d; position: relative; top: -24px; margin-bottom: -18px; }
+    .timeline-node b { display: block; color: #275f53; margin-top: 4px; }
+    .timeline-node.latest b { color: #0e8167; }
+    .recheck-list { display: grid; gap: 10px; }
+    .recheck-row { border: 1px solid #e1ebe6; border-radius: 9px; padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .84rem; color: #53716c; }
+    .recheck-row strong { color: #214a48; }
+    .recheck-row select { border: 1px solid #cbded4; border-radius: 7px; padding: 7px; background: #fff; color: #17544d; max-width: 130px; }
+    .footer-note { font-size: .74rem; color: #8ca39e; line-height: 1.5; margin: 17px 2px; }
+
+    /* ---------- Live summary column ---------- */
+    .insight-column { padding-top: 5px; }
+    .insight-card { background: #fff; border: 1px solid #deebe6; border-radius: 16px; padding: 23px 22px; box-shadow: 0 15px 35px rgba(28, 72, 60, .04); position: sticky; top: 20px; }
+    .insight-top { display: flex; justify-content: space-between; align-items: center; color: #168c74; }
+    .record-icon { font-size: 1.7rem; line-height: 1; }
+    .insight-card h2 { font-family: var(--serif); font-size: 1.35rem; letter-spacing: -.03em; line-height: 1.25; color: #173d42; margin: 17px 0 8px; }
+    .insight-card > p { color: #728a84; font-size: .84rem; line-height: 1.5; margin: 0 0 18px; }
+    .live-summary { border-top: 1px solid #e9f0ec; }
+    .live-row { padding: 12px 0; border-bottom: 1px solid #e9f0ec; display: flex; justify-content: space-between; gap: 10px; font-size: .81rem; color: #718a83; }
+    .live-row strong { text-align: right; color: #284f4e; }
+    .quality-preview { margin-top: 21px; background: #eef8f2; border-radius: 11px; padding: 15px; }
+    .quality-preview > div:first-child { display: flex; justify-content: space-between; align-items: center; }
+    .quality-preview small { font-size: .64rem; letter-spacing: .1em; color: #488674; font-weight: 700; }
+    .quality-preview strong { color: #117d64; font-size: 1.2rem; }
+    .quality-preview p { color: #648276; font-size: .73rem; line-height: 1.4; margin: 10px 0 0; }
+    .meter, .progress-track { height: 6px; border-radius: 99px; background: #cfe5d9; overflow: hidden; margin-top: 11px; }
+    .meter span, .progress-track span { display: block; height: 100%; background: #22a882; border-radius: 99px; transition: width .3s; }
+    .science-note { display: flex; gap: 13px; padding: 22px 7px; color: #52776e; }
+    .science-icon { font-size: 1.4rem; color: #189e7b; }
+    .science-note strong { font-size: .82rem; }
+    .science-note p { font-size: .79rem; line-height: 1.5; margin: 5px 0; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1060px) {
+      .workspace { grid-template-columns: minmax(0, 1fr); max-width: 800px; }
+      .insight-column { display: none; }
+    }
+    @media (max-width: 700px) {
+      .app-shell { display: block; }
+      .sidebar, .top-context { display: none; }
+      .topbar { height: 61px; padding: 0 18px; }
+      .mobile-brand { display: flex; align-items: center; font-weight: 700; font-size: 1.2rem; letter-spacing: -.045em; gap: 4px; color: #0e4a4d; }
+      .mobile-brand .brand-mark { width: 26px; height: 26px; margin-right: 5px; font-size: .9rem; border-color: #168f76; color: #168f76; }
+      .text-button { font-size: .79rem; }
+      .workspace { padding: 28px 16px 50px; display: block; }
+      .intro h1 { font-size: 2.34rem; }
+      .intro p { font-size: .92rem; }
+      .intro-meta { gap: 13px; flex-wrap: wrap; margin-bottom: 18px; font-size: .75rem; }
+      .kicker { font-size: .65rem; }
+      .mobile-progress { display: block; margin: 23px 0 16px; color: #24836f; font-size: .76rem; font-weight: 700; }
+      .progress-track { margin-top: 8px; }
+      .panel-header { padding: 23px 20px 20px; }
+      .panel-header h2 { font-size: 1.52rem; }
+      .panel-body { padding: 21px 20px 24px; }
+      .panel-actions { padding: 15px 20px; }
+      .visual-options, .choice-row, .photo-guide { gap: 6px; }
+      .visual-label { font-size: .73rem; padding: 9px 7px; min-height: 76px; }
+      .choice { padding: 10px 7px; font-size: .77rem; min-height: 75px; }
+      .choice span { font-size: .69rem; }
+      .review-grid { gap: 7px; }
+      .review-cell { padding: 11px; }
+      .guide-item { padding: 11px 8px; font-size: .71rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Assessment navigation">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">◉</span><span>Aqua<span class="brand-accent">Lens</span></span></div>
+      <div class="side-caption">FIELD COMPANION <span>·</span> TRACK 1</div>
+      <div class="site-card">
+        <span class="eyebrow">DEMO STREAM</span>
+        <strong>Willow Beck</strong>
+        <span>Site WB-014 · sample location</span>
+        <div class="site-status"><span class="status-dot"></span> Last example check · 22 Sep</div>
+      </div>
+      <nav class="step-nav" id="stepNav" aria-label="Steps">
+        <button type="button" data-step="0"><span class="step-number">01</span><span>Learn the clues</span></button>
+        <button type="button" data-step="1"><span class="step-number">02</span><span>Observe the stream</span></button>
+        <button type="button" data-step="2"><span class="step-number">03</span><span>Add evidence</span></button>
+        <button type="button" data-step="3"><span class="step-number">04</span><span>Review &amp; save</span></button>
+      </nav>
+      <div class="side-bottom"><span class="tiny-spark">✳</span> Built for human observation<br /><span>with explainable assistance.</span></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark">◉</span> Aqua<span>Lens</span></div>
+        <div class="top-context"><span class="top-pulse"></span> STREAM ASSESSMENT <span class="slash">/</span> WB-014</div>
+        <button type="button" class="text-button" id="resetBtn">Reset demo</button>
+      </header>
+
+      <div class="workspace">
+        <div class="work-column">
+          <section class="intro" aria-label="Stream context">
+            <div class="kicker"><span class="kicker-line"></span> CITIZEN SCIENCE, MADE OBSERVABLE</div>
+            <h1>How is <em>Willow Beck</em> today?</h1>
+            <p>Look closely, choose what you can see, and leave a useful record for the next visit.</p>
+            <div class="intro-meta"><span>◷ &nbsp;About 4 minutes</span><span>◈ &nbsp;Works without an account</span></div>
+          </section>
+
+          <div class="mobile-progress">
+            <div id="mobileProgressText">Step 1 of 4</div>
+            <div class="progress-track"><span id="progressFill"></span></div>
+          </div>
+
+          <section class="panel" id="panel"></section>
+          <div class="footer-note">AquaLens is an independent hackathon prototype. Willow Beck and its earlier observations are illustrative demo data.</div>
+        </div>
+
+        <aside class="insight-column" aria-label="Live assessment summary">
+          <div class="insight-card">
+            <div class="insight-top"><span class="eyebrow">LIVE FIELD NOTE</span><span class="record-icon">≋</span></div>
+            <h2>What your visit records</h2>
+            <p>Simple observations become structured evidence a science team can review.</p>
+            <div id="liveSummary" class="live-summary"></div>
+            <div class="quality-preview">
+              <div><small>EVIDENCE COMPLETENESS</small><strong id="qualityValue">15%</strong></div>
+              <div class="meter"><span id="qualityBar"></span></div>
+              <p id="qualityHint"></p>
+            </div>
+          </div>
+          <div class="science-note">
+            <span class="science-icon">✳</span>
+            <div><strong>Why this matters</strong><p>Repeated observations of the same place can reveal changes that a one-off visit misses.</p></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ================= State =================
+    const STORAGE_KEY = 'aqualens-track1-demo-v2';
+    const STEP_TITLES = ['Learn the clues', 'Observe the stream', 'Add evidence', 'Review & save'];
+    const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+    const THUMB_MAX_SIDE = 1200; // stored photo is downscaled so it fits in localStorage
+
+    const LABELS = {
+      clarity: { clear: 'Clear enough to see the bed', cloudy: 'Cloudy, bed partly visible', murky: 'Cannot see the bed' },
+      banks:   { covered: 'Plants cover most banks', patchy: 'Plants with bare gaps', bare: 'Mostly bare or built-up' },
+      litter:  { none: 'None seen', some: 'A few items', many: 'Many items' },
+      flow:    { moving: 'Water is moving', still: 'No visible flow' },
+      speed:   { slow: 'Gentle', steady: 'Steady', fast: 'Fast' }
+    };
+
+    const freshState = () => ({
+      step: 0,
+      calibration: null,
+      learnOpen: false,
+      answers: { clarity: null, banks: null, litter: null, flow: null, speed: null },
+      photo: null,          // downscaled data URL
+      photoName: null,
+      photoAnalysis: null,  // { width, height, resolutionOk, brightness, greenFraction }
+      saved: null,          // ISO timestamp once saved
+      quickChanges: {}
+    });
+
+    function loadState() {
+      const base = freshState();
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return { ...base, ...stored, answers: { ...base.answers, ...(stored.answers || {}) } };
+      } catch (_) {
+        return base; // corrupt or unavailable storage: start clean
+      }
+    }
+
+    let state = loadState();
+
+    const $ = (selector) => document.querySelector(selector);
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function persist() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* quota or private mode */ }
+    }
+
+    // ================= Derived values =================
+    const hasAnswers = () => {
+      const a = state.answers;
+      return ['clarity', 'banks', 'litter', 'flow'].every((k) => a[k]) && (a.flow !== 'moving' || !!a.speed);
+    };
+
+    // Evidence completeness: 15 base + 10 calibration + 10 per answer (40) + 30 photo + 5 resolution = 100
+    function quality() {
+      let score = 15;
+      if (state.calibration !== null) score += 10;
+      for (const key of ['clarity', 'banks', 'litter', 'flow']) if (state.answers[key]) score += 10;
+      if (state.photo) score += 30;
+      if (state.photoAnalysis?.resolutionOk) score += 5;
+      return Math.min(score, 100);
+    }
+
+    // ================= Templates =================
+    function header(number, title, subtitle) {
+      return `<div class="panel-header">
+        <span class="eyebrow">${number} / 04 · ${STEP_TITLES[number - 1].toUpperCase()}</span>
+        <h2>${title}</h2><p>${subtitle}</p></div>`;
+    }
+
+    function actions({ canGoBack, nextDisabled, nextText = 'Continue' }) {
+      const left = canGoBack
+        ? '<button type="button" class="button-secondary" data-action="back">Back</button>'
+        : '<span class="microcopy">Practice before the field check</span>';
+      return `<div class="panel-actions">${left}
+        <button type="button" class="button-primary" data-action="next" ${nextDisabled ? 'disabled' : ''}>${nextText}</button></div>`;
+    }
+
+    function bankDiagram(type) {
+      const banks = {
+        healthy: `<path d="M0 73 Q38 72 63 68 L83 83 L153 83 L171 68 Q199 71 240 73" fill="none" stroke="#687b68" stroke-width="5"/>
+          <path d="M0 67 Q35 68 63 60 M177 60 Q210 68 240 67" stroke="#31946b" stroke-width="8" fill="none"/>
+          <path d="M20 65 l-5 -20 m5 20 l6 -23 m12 20 l-3 -26 m12 22 l4 -21 m135 23 l-4 -26 m15 26 l3 -24 m13 25 l6 -22" stroke="#249164" stroke-width="3"/>`,
+        patchy: `<path d="M0 73 Q38 72 63 68 L83 83 L153 83 L171 68 Q199 71 240 73" fill="none" stroke="#866d58" stroke-width="5"/>
+          <path d="M0 67 L38 64 M184 64 L210 67" stroke="#31946b" stroke-width="8"/>
+          <path d="M12 64 l-4 -20 m14 20 l4 -23 m168 23 l-4 -20 m12 20 l4 -22" stroke="#249164" stroke-width="3"/>
+          <path d="M50 67 l22 3 M165 70 l18 -3" stroke="#bf8c5e" stroke-width="9"/>`,
+        eroded: `<path d="M0 72 L55 72 L75 86 L156 86 L181 73 L240 73" fill="none" stroke="#a37452" stroke-width="9"/>
+          <path d="M46 73 l15 13 m112 -1 l18 -14" stroke="#c99464" stroke-width="6"/>
+          <path d="M7 68 l-4 -10 m213 10 l3 -9" stroke="#64926d" stroke-width="2"/>`
+      };
+      return `<svg viewBox="0 0 240 112" role="img" aria-label="Diagram of ${type} stream banks">
+        <rect width="240" height="112" fill="#edf5ec"/>
+        <path d="M82 80 Q111 75 154 80 L159 112 H77Z" fill="#90ced5"/>
+        <path d="M89 93 Q110 90 139 93 M100 104 Q127 101 152 104" stroke="#d6f5ef" stroke-width="2" fill="none"/>
+        ${banks[type]}</svg>`;
+    }
+
+    function choiceGroup(key, title, description, options) {
+      const buttons = options.map(([id, caption, sub]) => `
+        <button type="button" class="choice ${state.answers[key] === id ? 'selected' : ''}"
+                data-answer="${key}:${id}" aria-pressed="${state.answers[key] === id}">${caption}${sub ? `<span>${sub}</span>` : ''}</button>`).join('');
+      return `<div class="obs-group"><p class="question">${title}</p><small>${description}</small><div class="choice-row">${buttons}</div></div>`;
+    }
+
+    // ----- Step 1 -----
+    function stepCalibration() {
+      const options = [['healthy', 'A', 'Plants cover both banks'], ['patchy', 'B', 'Some plants, some gaps'], ['eroded', 'C', 'Exposed soil and crumbling edges']];
+      const correct = state.calibration === 'eroded';
+      const cards = options.map(([id, letter, text]) => `
+        <button type="button" class="visual-card ${state.calibration === id ? 'selected' : ''}"
+                data-calibration="${id}" aria-pressed="${state.calibration === id}">
+          ${bankDiagram(id)}<span class="visual-label"><b>${letter}</b> ${text}</span></button>`).join('');
+      const feedback = state.calibration === null ? '' : `<div class="feedback ${correct ? '' : 'warn'}" role="status">${
+        correct ? '<b>That’s the clue.</b> Look for exposed soil and a collapsing edge.'
+                : '<b>Look again:</b> C has exposed soil and a crumbling edge. Plants alone do not show erosion.'}</div>`;
+      const learn = state.learnOpen
+        ? '<div class="learning">Plants can hold soil in place. Bare or collapsing banks may add sediment to the water and reduce habitat quality. This is an observation guide, not a diagnosis.</div>' : '';
+
+      return header(1, 'One clue before you begin', 'A quick practice question helps everyone describe the same thing in a similar way.') +
+        `<div class="panel-body"><p class="question">Which diagram shows a bank with obvious erosion?</p>
+          <div class="visual-options">${cards}</div>${feedback}
+          <button type="button" class="inline-learn" data-action="learn" aria-expanded="${state.learnOpen}">Why check stream banks? ${state.learnOpen ? '−' : '+'}</button>${learn}</div>` +
+        actions({ canGoBack: false, nextDisabled: state.calibration === null, nextText: 'Start field check' });
+    }
+
+    // ----- Step 2 -----
+    function stepObservations() {
+      const speedGroup = state.answers.flow === 'moving'
+        ? choiceGroup('speed', 'How fast does it look?', 'An approximate field description is enough.',
+            [['slow', 'Gentle', 'Barely moving'], ['steady', 'Steady', 'Visible current'], ['fast', 'Fast', 'Strong current']])
+        : '';
+      return header(2, 'Tell us what you can see', 'Choose the closest match. It is okay to report an imperfect or concerning stream.') +
+        `<div class="panel-body">
+          ${choiceGroup('clarity', 'Can you see through the water?', 'Look down at a shallow section; avoid judging from a photo alone.',
+            [['clear', 'Yes', 'See the bed'], ['cloudy', 'Somewhat', 'Partly visible'], ['murky', 'No', 'Bed not visible']])}
+          ${choiceGroup('banks', 'What covers most of the banks?', 'Look along roughly 10 metres on both sides.',
+            [['covered', 'Mostly plants', 'Few bare gaps'], ['patchy', 'Mixed', 'Some bare gaps'], ['bare', 'Mostly bare', 'Soil or concrete']])}
+          ${choiceGroup('litter', 'How much visible litter is there?', 'Count obvious human-made items in the area you can safely see.',
+            [['none', 'None', 'No items seen'], ['some', 'A little', '1–5 items'], ['many', 'A lot', '6+ items']])}
+          ${choiceGroup('flow', 'Is the water visibly moving?', 'Watch a leaf or the water surface for a few seconds.',
+            [['moving', 'Yes', 'Moving downstream'], ['still', 'No', 'Looks still']])}
+          ${speedGroup}
+          <div class="observation-note"><b>✳</b><div><b>Science translation</b><br/>Your choices are stored as structured clarity, bank cover, litter and flow categories. No health or pollution diagnosis is inferred from these answers alone.</div></div>
+        </div>` + actions({ canGoBack: true, nextDisabled: !hasAnswers(), nextText: 'Continue to evidence' });
+    }
+
+    // ----- Step 3 -----
+    function analysisCard() {
+      const a = state.photoAnalysis;
+      if (!a) {
+        return '<p>Add a photo to check practical image qualities. The evidence coach will suggest what a person should inspect; you still make the ecological assessment.</p>';
+      }
+      const light = a.brightness < 55 ? 'Image looks dark; a brighter image may show the banks better.'
+        : a.brightness > 220 ? 'Image looks very bright; detail may be washed out.'
+        : 'Lighting appears usable for a visual review.';
+      const green = a.greenFraction > 0.12
+        ? 'Green areas may be vegetation. Check both banks before confirming cover.'
+        : 'Little green was detected. Check the banks yourself; season and lighting can change this cue.';
+      return `<ul>
+          <li>${a.width} × ${a.height} pixels · ${a.resolutionOk ? 'enough detail for this prototype' : 'may be too small for later comparison'}</li>
+          <li>${light}</li><li>${green}</li></ul>
+        <p class="small">Local pixel analysis only. These cues are approximate, are not species or pollution detection, and are never submitted as ecological facts.</p>`;
+    }
+
+    function stepPhoto() {
+      const preview = state.photo ? `<img class="photo-preview" src="${state.photo}" alt="Your uploaded stream evidence" />` : '';
+      return header(3, 'Add a view of the stream', 'A consistent photo makes a later visit easier to compare. Take one from a safe place.') +
+        `<div class="panel-body">
+          <div class="photo-zone">
+            <span class="photo-icon" aria-hidden="true">▣</span>
+            <strong>${state.photo ? 'Photo added' : 'Choose an upstream photo'}</strong>
+            <p>Include water and both banks, if possible. JPG, PNG or WebP.</p>
+            <label class="photo-label" for="photoInput">${state.photo ? 'Replace photo' : 'Choose photo'}</label>
+            <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" />
+          </div>
+          ${preview}
+          <div class="photo-guide">
+            <div class="guide-item"><b>01 · Stay safe</b>Stay on a path. Never enter fast water.</div>
+            <div class="guide-item"><b>02 · Face upstream</b>Use the same view next time.</div>
+            <div class="guide-item"><b>03 · Include banks</b>Show both sides if possible.</div>
+          </div>
+          <div class="evidence-card"><div class="evidence-title"><span>✳</span> Evidence coach · prototype analysis</div>${analysisCard()}</div>
+        </div>` + actions({ canGoBack: true, nextDisabled: false, nextText: 'Review observation' });
+    }
+
+    // ----- Step 4 -----
+    function stepReview() {
+      const a = state.answers;
+      const complete = hasAnswers();
+      const flags = [];
+      if (!state.photo) flags.push('No photo attached; the observation is harder to compare later.');
+      if (state.photoAnalysis && !state.photoAnalysis.resolutionOk) flags.push('Photo resolution is low for future comparisons.');
+
+      const savedBanner = state.saved ? `<div class="saved-banner"><strong>Thank you for checking this place.</strong>
+        <p>Saved in this browser on ${new Date(state.saved).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. This is a local demo record and has not been sent to OneAquaHealth.</p></div>` : '';
+
+      const returnVisit = state.saved ? `
+        <h3 class="question" style="margin-top:26px">A reason to return</h3>
+        <p class="hint">Compare the same place on your next visit. The earlier entry below is example data.</p>
+        <div class="timeline">
+          <div class="timeline-node">22 Sep · example<b>Some litter</b></div>
+          <div class="timeline-node latest">Your visit<b>${esc(LABELS.litter[a.litter] || 'Recorded')}</b></div>
+        </div>
+        <div class="recheck-list">${[['clarity', 'Water clarity'], ['banks', 'Bank cover'], ['litter', 'Litter']].map(([key, text]) => `
+          <div class="recheck-row"><strong>${text}</strong>
+            <select data-quick="${key}" aria-label="${text} change">
+              ${[['same', 'Same'], ['better', 'Improved'], ['worse', 'Worse']].map(([v, l]) =>
+                `<option value="${v}" ${(state.quickChanges[key] || 'same') === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select></div>`).join('')}</div>
+        <p class="hint" style="margin-top:15px">Return checks are a preview of a shorter repeat workflow; they do not overwrite today’s record.</p>` : '';
+
+      const primary = state.saved
+        ? '<button type="button" class="button-primary" data-action="export">Download structured record</button>'
+        : `<button type="button" class="button-primary" data-action="save" ${complete ? '' : 'disabled'}>Save field note</button>`;
+
+      return header(4, state.saved ? 'Visit recorded' : 'Check your field note', 'Your choices remain yours. AquaLens only checks completeness and possible inconsistencies.') +
+        `<div class="panel-body">${savedBanner}
+          <div class="review-grid">
+            <div class="review-cell"><small>WATER CLARITY</small><strong>${esc(LABELS.clarity[a.clarity] || 'Not answered')}</strong></div>
+            <div class="review-cell"><small>BANK COVER</small><strong>${esc(LABELS.banks[a.banks] || 'Not answered')}</strong></div>
+            <div class="review-cell"><small>VISIBLE LITTER</small><strong>${esc(LABELS.litter[a.litter] || 'Not answered')}</strong></div>
+            <div class="review-cell"><small>FLOW</small><strong>${esc(LABELS.flow[a.flow] || 'Not answered')}${a.flow === 'moving' && a.speed ? ' · ' + esc(LABELS.speed[a.speed]) : ''}</strong></div>
+          </div>
+          <div class="quality-large"><strong>${quality()}%</strong><div><b>Evidence completeness</b>Based on answered fields, calibration, image presence and resolution. It is not water quality or scientific confidence.</div></div>
+          <ul class="check-list">
+            <li>Sample site ID attached: WB-014</li>
+            <li>${state.calibration !== null ? 'Practice clue completed' : 'Practice clue missing'}</li>
+            <li>${state.photo ? 'Photo present for future visual comparison' : 'Photo is optional in this demo'}</li>
+            ${flags.map((f) => `<li class="warning">${esc(f)}</li>`).join('')}
+          </ul>
+          ${complete ? '' : '<div class="feedback warn">Some observation questions are unanswered. Go back to complete them before saving.</div>'}
+          ${returnVisit}
+        </div>
+        <div class="panel-actions"><button type="button" class="button-secondary" data-action="edit">Edit answers</button>${primary}</div>`;
+    }
+
+    // ================= Render =================
+    const STEP_VIEWS = [stepCalibration, stepObservations, stepPhoto, stepReview];
+
+    // Re-rendering replaces the DOM, so remember which button had focus and restore it.
+    function focusSelector() {
+      const el = document.activeElement;
+      if (!el || !el.closest || !el.closest('#panel')) return null;
+      if (el.dataset.answer) return `[data-answer="${el.dataset.answer}"]`;
+      if (el.dataset.calibration) return `[data-calibration="${el.dataset.calibration}"]`;
+      if (el.dataset.action) return `[data-action="${el.dataset.action}"]`;
+      return null;
+    }
+
+    function render() {
+      const refocus = focusSelector();
+      state.step = Math.max(0, Math.min(3, state.step));
+      $('#panel').innerHTML = STEP_VIEWS[state.step]();
+
+      document.querySelectorAll('.step-nav button').forEach((button, i) => {
+        button.classList.toggle('active', i === state.step);
+        if (i === state.step) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+      });
+      $('#mobileProgressText').textContent = `Step ${state.step + 1} of 4 · ${STEP_TITLES[state.step]}`;
+      $('#progressFill').style.width = `${(state.step + 1) * 25}%`;
+
+      const a = state.answers;
+      const rows = [['Site', 'WB-014'], ['Water', LABELS.clarity[a.clarity]], ['Banks', LABELS.banks[a.banks]],
+                    ['Litter', LABELS.litter[a.litter]], ['Photo', state.photo ? 'Added' : 'Not added']];
+      $('#liveSummary').innerHTML = rows.map(([k, v]) =>
+        `<div class="live-row"><span>${k}</span><strong>${esc(v || 'Awaiting observation')}</strong></div>`).join('');
+
+      const q = quality();
+      $('#qualityValue').textContent = `${q}%`;
+      $('#qualityBar').style.width = `${q}%`;
+      $('#qualityHint').textContent = q >= 90 ? 'Well documented. Review the details before saving.'
+        : 'Answer questions and add a photo to strengthen your record.';
+
+      if (refocus) $(refocus)?.focus({ preventScroll: true });
+      persist();
+    }
+
+    function goToStep(step) {
+      state.step = step;
+      render();
+      $('#panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ================= Photo handling =================
+    // Reads the file once: measures it for the evidence coach, then stores a small JPEG copy.
+    function processPhoto(file) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        // Analysis on a small canvas (max 320px wide)
+        const aw = Math.min(320, img.width);
+        const ah = Math.max(1, Math.round(img.height * aw / img.width));
+        const probe = document.createElement('canvas');
+        probe.width = aw; probe.height = ah;
+        const pctx = probe.getContext('2d', { willReadFrequently: true });
+        pctx.drawImage(img, 0, 0, aw, ah);
+        const data = pctx.getImageData(0, 0, aw, ah).data;
+        let brightness = 0, green = 0, count = 0;
+        for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          brightness += (r + g + b) / 3;
+          if (g > r * 1.12 && g > b * 1.08 && g > 45) green++;
+          count++;
+        }
+
+        // Downscaled copy for storage
+        const scale = Math.min(1, THUMB_MAX_SIDE / Math.max(img.width, img.height));
+        const thumb = document.createElement('canvas');
+        thumb.width = Math.round(img.width * scale);
+        thumb.height = Math.round(img.height * scale);
+        thumb.getContext('2d').drawImage(img, 0, 0, thumb.width, thumb.height);
+
+        state.photo = thumb.toDataURL('image/jpeg', 0.8);
+        state.photoName = file.name;
+        state.photoAnalysis = {
+          width: img.width,
+          height: img.height,
+          resolutionOk: img.width >= 640 && img.height >= 480,
+          brightness: Math.round(brightness / count),
+          greenFraction: green / count
+        };
+        state.saved = null;
+        URL.revokeObjectURL(url);
+        render();
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        alert('That image could not be read. Try a different photo.');
+      };
+      img.src = url;
+    }
+
+    function exportRecord() {
+      const payload = {
+        schema: 'aqualens.demo.observation.v1',
+        site: { id: 'WB-014', name: 'Willow Beck', demo: true },
+        observedAt: state.saved,
+        observations: { ...state.answers },
+        evidence: { photoPresent: !!state.photo, photoName: state.photoName, photoChecks: state.photoAnalysis },
+        quality: { label: 'evidence_completeness', percent: quality(), warnings: state.photo ? [] : ['photo_missing'] },
+        provenance: { source: 'citizen-entered prototype', photoIncluded: false, notSubmittedToOneAquaHealth: true }
+      };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'aqualens-WB-014-observation.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ================= Events =================
+    $('#panel').addEventListener('click', (event) => {
+      const calibrationBtn = event.target.closest('[data-calibration]');
+      if (calibrationBtn) { state.calibration = calibrationBtn.dataset.calibration; render(); return; }
+
+      const answerBtn = event.target.closest('[data-answer]');
+      if (answerBtn) {
+        const [key, value] = answerBtn.dataset.answer.split(':');
+        state.answers[key] = value;
+        if (key === 'flow' && value === 'still') state.answers.speed = null; // no flow means no speed
+        state.saved = null;
+        render();
+        return;
+      }
+
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      switch (action) {
+        case 'learn':  state.learnOpen = !state.learnOpen; render(); break;
+        case 'next':   goToStep(state.step + 1); break;
+        case 'back':   goToStep(state.step - 1); break;
+        case 'edit':   state.saved = null; goToStep(1); break;
+        case 'save':   if (hasAnswers()) { state.saved = new Date().toISOString(); render(); } break;
+        case 'export': exportRecord(); break;
+      }
+    });
+
+    $('#panel').addEventListener('change', (event) => {
+      const target = event.target;
+      if (target.id === 'photoInput') {
+        const file = target.files && target.files[0];
+        target.value = ''; // allow picking the same file again
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { alert('Choose a JPG, PNG or WebP photo.'); return; }
+        if (file.size > MAX_PHOTO_BYTES) { alert('Choose a photo smaller than 5 MB for this browser-only demo.'); return; }
+        processPhoto(file);
+      } else if (target.dataset.quick) {
+        state.quickChanges[target.dataset.quick] = target.value;
+        persist();
+      }
+    });
+
+    $('#stepNav').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-step]');
+      if (!button) return;
+      const step = Number(button.dataset.step);
+      if (step > 0 && state.calibration === null) return; // finish the practice clue first
+      if (step > 2 && !hasAnswers()) return;              // can't review without answers
+      state.step = step;
+      render();
+    });
+
+    $('#resetBtn').addEventListener('click', () => {
+      if (!confirm('Reset this demo assessment and remove the saved photo from this browser?')) return;
+      state = freshState();
+      try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* ignore */ }
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
